@@ -145,7 +145,7 @@ function render(admin,q){
       <div>${tags}</div>
       ${r.content?`<div class="body">${hl(r.content,q)}</div>`:''}
       ${r.notes?`<div class="note">📝 ${hl(r.notes,q)}</div>`:''}
-      <div class="acts">${r.content?'<button data-a="tog">සම්පූර්ණ කියවන්න</button>':''}${admin?'<button data-a="edit">සංස්කරණය</button><button class="d" data-a="del">මකන්න</button>':''}</div>
+      <div class="acts">${r.content?'<button data-a="tog">සම්පූර්ණ කියවන්න</button>':''}<button data-a="copy">Copy as text</button><button data-a="pdf">Download as PDF</button>${admin?'<button data-a="edit">සංස්කරණය</button><button class="d" data-a="del">මකන්න</button>':''}</div>
     </article>`}).join('');
 }
 function clicks(e){
@@ -156,6 +156,48 @@ function clicks(e){
   if(b.dataset.a==='tog'){el.classList.toggle('open');b.textContent=el.classList.contains('open')?'හකුළන්න':'සම්පූර්ණ කියවන්න'}
   if(b.dataset.a==='edit'){startEdit(rows.find(r=>r.id===id))}
   if(b.dataset.a==='del'){del(id)}
+  if(b.dataset.a==='copy'){copyText(rows.find(r=>r.id===id))}
+  if(b.dataset.a==='pdf'){savePdf(rows.find(r=>r.id===id))}
+}
+function asText(r){
+  return [r.title,
+    r.author&&('ලේඛකයා: '+r.author),
+    r.url&&('Link: '+r.url),
+    r.tags&&('ටැග්: '+r.tags),
+    '',r.content,
+    r.notes&&('\nසටහන්: '+r.notes)
+  ].filter(x=>x!==null&&x!==undefined&&x!==false).join('\n').trim();
+}
+async function copyText(r){
+  const t=asText(r);
+  try{await navigator.clipboard.writeText(t)}
+  catch(e){
+    const a=document.createElement('textarea');a.value=t;a.style.position='fixed';a.style.opacity='0';
+    document.body.appendChild(a);a.select();
+    try{document.execCommand('copy')}catch(_){toast('Copy කිරීමට නොහැකි විය');a.remove();return}
+    a.remove();
+  }
+  toast('Text ලෙස copy කළා');
+}
+function savePdf(r){
+  const link=r.url?`<div class="m">${esc(r.url)}</div>`:'';
+  const html=`<!DOCTYPE html><html lang="si"><head><meta charset="utf-8"><title>${esc(r.title||'ලිපිය')}</title>
+<style>@page{margin:18mm}body{font:12pt/1.8 "Noto Sans Sinhala","Iskoola Pota",system-ui,sans-serif;color:#000;background:#fff}
+h1{font-size:18pt;margin:0 0 6pt}.m{color:#444;font-size:10pt;word-break:break-all}
+.c{white-space:pre-wrap;margin-top:14pt}.n{margin-top:16pt;padding:8pt 10pt;border:1px solid #bbb;white-space:pre-wrap;font-size:11pt}</style></head><body>
+<h1>${esc(r.title||'(මාතෘකාවක් නැත)')}</h1>
+${r.author?`<div class="m">ලේඛකයා: ${esc(r.author)}</div>`:''}${link}
+${r.tags?`<div class="m">ටැග්: ${esc(r.tags)}</div>`:''}
+${r.content?`<div class="c">${esc(r.content)}</div>`:''}
+${r.notes?`<div class="n">සටහන්: ${esc(r.notes)}</div>`:''}</body></html>`;
+  const f=document.createElement('iframe');
+  f.style.cssText='position:fixed;right:0;bottom:0;width:0;height:0;border:0';
+  f.srcdoc=html;
+  f.onload=()=>{
+    setTimeout(()=>{f.contentWindow.focus();f.contentWindow.print();setTimeout(()=>f.remove(),60000)},300);
+  };
+  document.body.appendChild(f);
+  toast('Print කවුළුවේ "Save as PDF" තෝරන්න');
 }
 $('#list').onclick=clicks;$('#alist').onclick=clicks;
 $('#q').oninput=$('#aq').oninput=()=>{clearTimeout(timer);timer=setTimeout(load,300)};
