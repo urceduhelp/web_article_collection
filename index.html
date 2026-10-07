@@ -34,7 +34,7 @@ textarea{resize:vertical}
 .item.open .body{max-height:none}
 .note{margin-top:8px;padding:8px 10px;background:var(--acc2);border-radius:8px;font-size:.92rem;white-space:pre-wrap}
 .acts{display:flex;gap:8px;margin-top:10px}
-.acts button{padding:4px 11px;font-size:.88rem}
+.acts button{padding:4px 12px;font-size:.88rem}
 mark{background:#ffe27a;color:#000;border-radius:3px;padding:0 1px}
 label{display:block;margin:10px 0 3px;font-size:.9rem;color:var(--mute)}
 .row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
@@ -224,7 +224,7 @@ async function copyText(r){
 function savePdf(r){
   const link=r.url?`<div class="m">${esc(r.url)}</div>`:'';
   const html=`<!DOCTYPE html><html lang="si"><head><meta charset="utf-8"><title>${esc(r.title||'ලිපිය')}</title>
-<style>@page{margin:18mm}body{font:11pt/1.8 "Noto Sans Sinhala","Iskoola Pota",system-ui,sans-serif;color:#000;background:#fff}
+<style>@page{margin:18mm}body{font:12pt/1.8 "Noto Sans Sinhala","Iskoola Pota",system-ui,sans-serif;color:#000;background:#fff}
 h1{font-size:18pt;margin:0 0 6pt}.m{color:#444;font-size:10pt;word-break:break-all}
 .c{white-space:pre-wrap;margin-top:14pt}.n{margin-top:16pt;padding:8pt 10pt;border:1px solid #bbb;white-space:pre-wrap;font-size:11pt}</style></head><body>
 <h1>${esc(r.title||'(මාතෘකාවක් නැත)')}</h1>
@@ -319,11 +319,11 @@ $('#bsel').onclick=e=>{
 $('#pickall').onclick=()=>{rows.forEach(r=>{if(!order.includes(r.id))order.push(r.id)});renderSel();syncPicks()};
 function addFront(f={}){
   const d=document.createElement('div');d.className='fp';
-  d.innerHTML='<div class="row"><div><label>මුල් පිටුවේ මාතෘකාව (උදා: පිදුම, හැඳින්වීම, පෙරවදන)</label><input class="fh"></div><div><label>සැකැස්ම</label><select class="fc"><option value="2">කොලම් දෙකක්</option><option value="1">මැද (තනි කොලමක්)</option></select></div></div><label>පාඨය (හිස් නම් මෙම පිටුව ඇතුළත් නොවේ)</label><textarea class="ftx" rows="4"></textarea><div class="foot"><button type="button" class="d fx">මෙම පිටුව ඉවත් කරන්න</button></div>';
-  d.querySelector('.fh').value=f.h||'';d.querySelector('.fc').value=f.c||2;
+  d.innerHTML='<div class="row"><div><label>මුල් පිටුවේ මාතෘකාව (උදා: පිදුම, හැඳින්වීම, පෙරවදන)</label><input class="fh"></div><div><label>සැකැස්ම</label><select class="fc"><option value="j">Justify (තනි කොලමක්)</option><option value="c">මැදට (Center)</option></select></div></div><label>පාඨය (හිස් නම් මෙම පිටුව ඇතුළත් නොවේ)</label><textarea class="ftx" rows="4"></textarea><div class="foot"><button type="button" class="d fx">මෙම පිටුව ඉවත් කරන්න</button></div>';
+  d.querySelector('.fh').value=f.h||'';d.querySelector('.fc').value=f.c||'j';
   $('#bfront').append(d);
 }
-[{h:'පිදුම',c:1},{h:'හැඳින්වීම',c:2}].forEach(addFront);
+[{h:'පිදුම',c:'c'},{h:'හැඳින්වීම',c:'j'}].forEach(addFront);
 $('#addfront').onclick=()=>addFront();
 $('#bfront').onclick=e=>{const b=e.target.closest('.fx');if(b)b.closest('.fp').remove()};
 renderSel();
@@ -332,7 +332,7 @@ const BOOK_HTML=`<!DOCTYPE html><html lang="si"><head><meta charset="utf-8"><tit
 @page{size:A4;margin:0}
 *{box-sizing:border-box}
 html,body{margin:0}
-body{font:11pt/1.7 "Noto Sans Sinhala","Iskoola Pota",system-ui,sans-serif;color:#000;background:#777;padding:10px 0}
+body{font:12pt/1.7 "Noto Sans Sinhala","Iskoola Pota",system-ui,sans-serif;color:#000;background:#777;padding:10px 0}
 .pg{width:210mm;height:296mm;padding:1in;background:#fff;margin:0 auto 12px;break-after:page;page-break-after:always;overflow:hidden}
 .pg:last-child{break-after:auto;page-break-after:auto}
 .fr{height:100%;border:1.5px solid #000;padding:7mm 7mm 3mm;display:flex;flex-direction:column}
@@ -342,9 +342,10 @@ body{font:11pt/1.7 "Noto Sans Sinhala","Iskoola Pota",system-ui,sans-serif;color
 .h1{font-size:16pt;font-weight:700;line-height:1.5;margin:0 0 6pt;break-after:avoid}
 .h2{font-size:14pt;font-weight:700;line-height:1.5;margin:10pt 0 2pt;break-after:avoid}
 .au{font-size:14pt;margin:0 0 2pt}
-.u{font-size:11pt;overflow-wrap:anywhere;margin:0 0 10pt}
+.u{font-size:12pt;overflow-wrap:anywhere;margin:0 0 10pt}
 .u a{color:#000}
-.t{font-size:11pt;white-space:pre-wrap;overflow-wrap:anywhere}
+.t{font-size:12pt;white-space:pre-wrap;overflow-wrap:anywhere;text-align:justify;text-justify:inter-word}
+.ctr .t{text-align:center}
 .ctr{text-align:center}
 .tr{display:flex;align-items:baseline;gap:4px;margin:0 0 4pt;break-inside:avoid}
 .dl{flex:1;border-bottom:1px dotted #000;min-width:12px}
@@ -366,7 +367,7 @@ async function makeBook(){
   const items=order.map(id=>store.get(id)).filter(Boolean);
   if(!items.length){err.textContent='පොතට ලිපි තෝරන්න ("සුරැකි ලිපි" අතර 📖 පොතට ටික් කරන්න).';return}
   const cfg={title,sub:$('#bs').value.trim(),toc:$('#btoc').checked,idx:$('#bidx').checked,notes:$('#bnotes').checked,
-    fronts:[...document.querySelectorAll('#bfront .fp')].map(d=>({h:d.querySelector('.fh').value.trim(),t:d.querySelector('.ftx').value.trim(),c:+d.querySelector('.fc').value})).filter(f=>f.t),
+    fronts:[...document.querySelectorAll('#bfront .fp')].map(d=>({h:d.querySelector('.fh').value.trim(),t:d.querySelector('.ftx').value.trim(),c:d.querySelector('.fc').value})).filter(f=>f.t),
     items:items.map(r=>({r,words:parseWords(idxw[r.id])}))};
   $('#bk').hidden=false;document.body.style.overflow='hidden';
   $('#bkprint').disabled=true;$('#bkwarn').hidden=true;setSt('සකසමින්…');
@@ -428,8 +429,8 @@ async function buildBook(cfg){
     return d;
   }
   function frontNode(f){
-    const d=el('div',f.c===1?'ctr':null);
-    if(f.c===1){const sp=el('div');sp.style.height=Math.round(H*0.22)+'px';d.append(sp)}
+    const d=el('div',f.c==='c'?'ctr':null);
+    if(f.c==='c'){const sp=el('div');sp.style.height=Math.round(H*0.22)+'px';d.append(sp)}
     if(f.h)d.append(el('div','h1',f.h));
     d.append(el('div','t',f.t));return d;
   }
@@ -447,11 +448,11 @@ async function buildBook(cfg){
 
   /* pass 1: measure */
   setSt('පිටු මනිමින්…');await tick();
-  const fr=cfg.fronts.map(f=>{const node=frontNode(f);return{node,c:f.c,n:measure(node,f.c).pages}});
+  const fr=cfg.fronts.map(f=>{const node=frontNode(f);return{node,c:1,n:measure(node,1).pages}});
   const arts=[];
   for(const [i,it] of cfg.items.entries()){
     setSt(`ලිපි සකසමින් (${i+1}/${cfg.items.length})…`);await tick();
-    const node=artNode(it.r),m=measure(node,2,it.words);
+    const node=artNode(it.r),m=measure(node,1,it.words);
     arts.push({it,node,pages:m.pages,hits:m.hits});
   }
   const frontN=fr.reduce((s,x)=>s+x.n,0);
@@ -459,8 +460,8 @@ async function buildBook(cfg){
   const startsOf=()=>{let p=1+frontN+tocN+1;return arts.map(a=>{const s=p;p+=a.pages;return s})};
   const ttl=a=>a.it.r.title||'(මාතෘකාවක් නැත)';
   if(cfg.toc){
-    tocN=measure(tocNode(arts.map(a=>[ttl(a),'000'])),2).pages;
-    for(let i=0;i<3;i++){const st=startsOf(),nn=measure(tocNode(arts.map((a,k)=>[ttl(a),st[k]])),2).pages;if(nn===tocN)break;tocN=nn}
+    tocN=measure(tocNode(arts.map(a=>[ttl(a),'000'])),1).pages;
+    for(let i=0;i<3;i++){const st=startsOf(),nn=measure(tocNode(arts.map((a,k)=>[ttl(a),st[k]])),1).pages;if(nn===tocN)break;tocN=nn}
   }
   const starts=startsOf();
 
@@ -473,7 +474,7 @@ async function buildBook(cfg){
     pg.forEach(x=>imap.get(key).p.add(starts[k]+x));
   }));
   const useIdx=cfg.idx&&imap.size>0;
-  const idxNode=useIdx?indexNode(imap):null,idxN=useIdx?measure(idxNode,2).pages:0;
+  const idxNode=useIdx?indexNode(imap):null,idxN=useIdx?measure(idxNode,1).pages:0;
 
   /* pass 2: emit pages */
   setSt('පිටු සකසමින්…');await tick();
@@ -483,9 +484,9 @@ async function buildBook(cfg){
     mc.style.transform=`translateX(${-k*(W+G)}px)`;pg.vp.append(mc);pg.pn.textContent=pageNo;}};
   {pageNo++;const pg=mkPage(),cv=el('div','cv');cv.append(el('div','ct',cfg.title));if(cfg.sub)cv.append(el('div','cs',cfg.sub));pg.vp.append(cv)}
   fr.forEach(x=>emit(x.node,x.c,x.n));
-  if(cfg.toc)emit(tocNode(arts.map((a,k)=>[ttl(a),starts[k]])),2,tocN);
-  arts.forEach(a=>emit(a.node,2,a.pages));
-  if(useIdx)emit(idxNode,2,idxN);
+  if(cfg.toc)emit(tocNode(arts.map((a,k)=>[ttl(a),starts[k]])),1,tocN);
+  arts.forEach(a=>emit(a.node,1,a.pages));
+  if(useIdx)emit(idxNode,1,idxN);
 
   setSt(`පිටු ${pageNo} ක් • සූදානම්. "PDF ලෙස බාගන්න" ඔබා Destination: Save as PDF තෝරන්න.`);
   if(missing.length||(cfg.idx&&!useIdx&&cfg.items.some(i=>i.words.length))){
