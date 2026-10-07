@@ -34,7 +34,7 @@ textarea{resize:vertical}
 .item.open .body{max-height:none}
 .note{margin-top:8px;padding:8px 10px;background:var(--acc2);border-radius:8px;font-size:.92rem;white-space:pre-wrap}
 .acts{display:flex;gap:8px;margin-top:10px}
-.acts button{padding:4px 12px;font-size:.88rem}
+.acts button{padding:4px 11px;font-size:.88rem}
 mark{background:#ffe27a;color:#000;border-radius:3px;padding:0 1px}
 label{display:block;margin:10px 0 3px;font-size:.9rem;color:var(--mute)}
 .row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
@@ -44,6 +44,20 @@ label{display:block;margin:10px 0 3px;font-size:.9rem;color:var(--mute)}
 .bar{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:14px}
 .empty{text-align:center;color:var(--mute);padding:36px 0}
 .err{color:var(--danger);margin-top:10px;font-size:.92rem;white-space:pre-wrap}
+select{width:100%;padding:9px 11px;border:1px solid var(--line);border-radius:8px;background:var(--card);color:inherit;font:inherit}
+.fp,.sr{border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin-top:10px}
+.srh{display:flex;justify-content:space-between;gap:8px;align-items:center}
+.srh .acts{margin:0}
+.pkb{margin-top:8px}
+.pkt{white-space:pre-wrap;max-height:200px;overflow:auto;border:1px dashed var(--line);border-radius:8px;padding:8px;margin-bottom:8px;user-select:text;-webkit-user-select:text}
+.chk{display:flex;gap:16px;flex-wrap:wrap;margin:12px 0}
+.chk label{display:flex;align-items:center;gap:6px;margin:0;color:var(--ink)}
+.chk input{width:auto}
+.pick{display:inline-flex;align-items:center;gap:5px;font-size:.88rem;cursor:pointer;margin:0;color:var(--ink)}
+.pick input{width:auto}
+#bk{position:fixed;inset:0;z-index:50;background:var(--bg);display:flex;flex-direction:column}
+.bkbar{display:flex;justify-content:space-between;gap:10px;padding:10px 14px;border-bottom:1px solid var(--line);background:var(--card);flex-wrap:wrap;align-items:center}
+#bkf{flex:1;border:0;width:100%;background:#777}
 [hidden]{display:none!important}
 #toast{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:8px 16px;border-radius:8px;display:none}
 </style>
@@ -88,12 +102,37 @@ label{display:block;margin:10px 0 3px;font-size:.9rem;color:var(--mute)}
         <div class="foot"><button class="p" type="submit" id="save">සුරකින්න</button><button type="button" id="cancel" hidden>වෙනස් කිරීම නවතන්න</button></div>
         <div class="err" id="ferr"></div>
       </form>
+      <div class="box" id="bkbox">
+        <h2>📚 ලිපි තෝරා පොතක් (PDF) සකසන්න</h2>
+        <div class="meta">පහත "සුරැකි ලිපි" අතර ලිපිවල <b>📖 පොතට</b> ටික් කර ලිපි තෝරන්න.</div>
+        <div class="row">
+          <div><label>පොතේ නම</label><input id="bt"></div>
+          <div><label>උප මාතෘකාව / සම්පාදකයා (අවශ්‍ය නම්)</label><input id="bs"></div>
+        </div>
+        <h2 style="margin-top:16px">මුල් පිටු (පිදුම, හැඳින්වීම ආදිය)</h2>
+        <div id="bfront"></div>
+        <div class="foot"><button type="button" id="addfront">+ මුල් පිටුවක් එක් කරන්න</button></div>
+        <div class="chk">
+          <label><input type="checkbox" id="btoc" checked> පටුන ඇතුළත් කරන්න</label>
+          <label><input type="checkbox" id="bidx" checked> සුචිය (Index) ඇතුළත් කරන්න</label>
+          <label><input type="checkbox" id="bnotes"> මගේ සටහන් ඇතුළත් කරන්න</label>
+        </div>
+        <h2 id="bcnt">0 ලිපි තෝරා ඇත</h2>
+        <div id="bsel"></div>
+        <div class="foot"><button class="p" type="button" id="mkbook">📖 පොත සකසන්න</button></div>
+        <div class="err" id="bkerr"></div>
+      </div>
       <h2>සුරැකි ලිපි</h2>
       <input id="aq" class="big" type="search" placeholder="ලිපි අතර පෙරන්න…">
-      <div class="meta" id="ameta"></div>
+      <div class="bar"><div class="meta" id="ameta" style="margin:0"></div><button type="button" id="pickall">📖 පෙනෙන සියල්ල පොතට</button></div>
       <div id="alist"></div>
     </div>
   </section>
+</div>
+<div id="bk" hidden>
+  <div class="bkbar"><b id="bkst">සකසමින්…</b><span class="acts" style="margin:0"><button class="p" id="bkprint" disabled>⬇ PDF ලෙස බාගන්න</button><button id="bkclose">වසන්න</button></span></div>
+  <div id="bkwarn" class="err" style="padding:0 14px" hidden></div>
+  <iframe id="bkf" title="පොත"></iframe>
 </div>
 <div id="toast"></div>
 
@@ -125,7 +164,7 @@ async function load(){
   const {data,error}=await req;
   const meta=admin?$('#ameta'):$('#meta');
   if(error){meta.textContent='දෝෂයක්: '+error.message;return}
-  rows=data;render(admin,qv);
+  rows=data;data.forEach(r=>store.set(r.id,r));render(admin,qv);
 }
 function hl(s,q){
   s=esc(s);if(!q)return s;
@@ -145,10 +184,13 @@ function render(admin,q){
       <div>${tags}</div>
       ${r.content?`<div class="body">${hl(r.content,q)}</div>`:''}
       ${r.notes?`<div class="note">📝 ${hl(r.notes,q)}</div>`:''}
-      <div class="acts">${r.content?'<button data-a="tog">සම්පූර්ණ කියවන්න</button>':''}<button data-a="copy">Copy as text</button><button data-a="pdf">Download as PDF</button>${admin?'<button data-a="edit">සංස්කරණය</button><button class="d" data-a="del">මකන්න</button>':''}</div>
+      <div class="acts">${r.content?'<button data-a="tog">සම්පූර්ණ කියවන්න</button>':''}<button data-a="copy">Copy as text</button><button data-a="pdf">Download as PDF</button>${admin?'<label class="pick"><input type="checkbox" data-a="pick"'+(order.includes(r.id)?' checked':'')+'> 📖 පොතට</label><button data-a="edit">සංස්කරණය</button><button class="d" data-a="del">මකන්න</button>':''}</div>
     </article>`}).join('');
 }
 function clicks(e){
+  const pk=e.target.closest('input[data-a="pick"]');
+  if(pk){const id=+pk.closest('.item').dataset.id,i=order.indexOf(id);
+    if(pk.checked&&i<0)order.push(id);if(!pk.checked&&i>=0)order.splice(i,1);renderSel();return}
   const tag=e.target.closest('.tag');
   if(tag){const i=isAdminTab()?$('#aq'):$('#q');i.value=tag.dataset.t;load();return}
   const b=e.target.closest('button');if(!b)return;
@@ -182,7 +224,7 @@ async function copyText(r){
 function savePdf(r){
   const link=r.url?`<div class="m">${esc(r.url)}</div>`:'';
   const html=`<!DOCTYPE html><html lang="si"><head><meta charset="utf-8"><title>${esc(r.title||'ලිපිය')}</title>
-<style>@page{margin:18mm}body{font:12pt/1.8 "Noto Sans Sinhala","Iskoola Pota",system-ui,sans-serif;color:#000;background:#fff}
+<style>@page{margin:18mm}body{font:11pt/1.8 "Noto Sans Sinhala","Iskoola Pota",system-ui,sans-serif;color:#000;background:#fff}
 h1{font-size:18pt;margin:0 0 6pt}.m{color:#444;font-size:10pt;word-break:break-all}
 .c{white-space:pre-wrap;margin-top:14pt}.n{margin-top:16pt;padding:8pt 10pt;border:1px solid #bbb;white-space:pre-wrap;font-size:11pt}</style></head><body>
 <h1>${esc(r.title||'(මාතෘකාවක් නැත)')}</h1>
@@ -238,6 +280,220 @@ async function del(id){
   if(error){toast('දෝෂයක්: '+error.message);return}
   toast('මකා දැමිණි');load();
 }
+/* ===================== Book builder (Admin) ===================== */
+const store=new Map(),idxw={};let order=[];
+const parseWords=s=>[...new Set((s||'').split(/[,\n]/).map(x=>x.replace(/\s+/g,' ').trim()).filter(Boolean))];
+function syncPicks(){document.querySelectorAll('#alist input[data-a="pick"]').forEach(c=>c.checked=order.includes(+c.closest('.item').dataset.id))}
+function addWords(sr,id,arr){
+  const cur=parseWords(idxw[id]);
+  arr.map(x=>x.replace(/\s+/g,' ').trim()).filter(Boolean).forEach(w=>{if(!cur.some(c=>c.toLowerCase()===w.toLowerCase()))cur.push(w)});
+  idxw[id]=cur.join(', ');sr.querySelector('.iw').value=idxw[id];
+}
+function renderSel(){
+  $('#bcnt').textContent=order.length+' ලිපි තෝරා ඇත';
+  const box=$('#bsel');
+  if(!order.length){box.innerHTML='<div class="empty">ලිපි තෝරා නැත.</div>';return}
+  box.innerHTML=order.map((id,i)=>{const r=store.get(id)||{};return `<div class="sr" data-id="${id}">
+    <div class="srh"><b>${i+1}. ${esc(r.title||'(මාතෘකාවක් නැත)')}</b><span class="acts"><button type="button" data-b="up">↑</button><button type="button" data-b="dn">↓</button><button type="button" class="d" data-b="rm">✕</button></span></div>
+    <label>Index වචන (කොමාවෙන් වෙන් කරන්න)</label><input class="iw" value="${esc(idxw[id]||'')}">
+    <div class="acts"><button type="button" data-b="pk">🔎 ලිපියෙන් වචන තෝරන්න</button><button type="button" data-b="tg">ටැග් එක් කරන්න</button></div>
+    <div class="pkb" hidden><div class="pkt">${esc(r.content||'')}</div><button type="button" class="p" data-b="add">තෝරාගත් පාඨය Index එකට එක් කරන්න</button></div></div>`}).join('');
+}
+$('#bsel').addEventListener('pointerdown',e=>{if(e.target.closest('[data-b="add"]'))e.preventDefault()});
+$('#bsel').addEventListener('input',e=>{const sr=e.target.closest('.sr');if(sr&&e.target.classList.contains('iw'))idxw[sr.dataset.id]=e.target.value});
+$('#bsel').onclick=e=>{
+  const b=e.target.closest('button');if(!b)return;
+  const sr=b.closest('.sr'),id=+sr.dataset.id,i=order.indexOf(id);
+  const k=b.dataset.b;
+  if(k==='up'&&i>0){[order[i-1],order[i]]=[order[i],order[i-1]];renderSel()}
+  else if(k==='dn'&&i<order.length-1){[order[i+1],order[i]]=[order[i],order[i+1]];renderSel()}
+  else if(k==='rm'){order.splice(i,1);renderSel();syncPicks()}
+  else if(k==='pk'){const p=sr.querySelector('.pkb');p.hidden=!p.hidden}
+  else if(k==='tg'){addWords(sr,id,(store.get(id).tags||'').split(','))}
+  else if(k==='add'){
+    const sel=getSelection(),t=(sel?sel.toString():'').replace(/[,\s]+/g,' ').trim();
+    if(!t||!sr.querySelector('.pkt').contains(sel.anchorNode)){toast('පළමුව ලිපියෙන් වචනයක් තෝරන්න');return}
+    addWords(sr,id,[t]);
+  }
+};
+$('#pickall').onclick=()=>{rows.forEach(r=>{if(!order.includes(r.id))order.push(r.id)});renderSel();syncPicks()};
+function addFront(f={}){
+  const d=document.createElement('div');d.className='fp';
+  d.innerHTML='<div class="row"><div><label>මුල් පිටුවේ මාතෘකාව (උදා: පිදුම, හැඳින්වීම, පෙරවදන)</label><input class="fh"></div><div><label>සැකැස්ම</label><select class="fc"><option value="2">කොලම් දෙකක්</option><option value="1">මැද (තනි කොලමක්)</option></select></div></div><label>පාඨය (හිස් නම් මෙම පිටුව ඇතුළත් නොවේ)</label><textarea class="ftx" rows="4"></textarea><div class="foot"><button type="button" class="d fx">මෙම පිටුව ඉවත් කරන්න</button></div>';
+  d.querySelector('.fh').value=f.h||'';d.querySelector('.fc').value=f.c||2;
+  $('#bfront').append(d);
+}
+[{h:'පිදුම',c:1},{h:'හැඳින්වීම',c:2}].forEach(addFront);
+$('#addfront').onclick=()=>addFront();
+$('#bfront').onclick=e=>{const b=e.target.closest('.fx');if(b)b.closest('.fp').remove()};
+renderSel();
+
+const BOOK_HTML=`<!DOCTYPE html><html lang="si"><head><meta charset="utf-8"><title>පොත</title><style>
+@page{size:A4;margin:0}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{font:11pt/1.7 "Noto Sans Sinhala","Iskoola Pota",system-ui,sans-serif;color:#000;background:#777;padding:10px 0}
+.pg{width:210mm;height:296mm;padding:1in;background:#fff;margin:0 auto 12px;break-after:page;page-break-after:always;overflow:hidden}
+.pg:last-child{break-after:auto;page-break-after:auto}
+.fr{height:100%;border:1.5px solid #000;padding:7mm 7mm 3mm;display:flex;flex-direction:column}
+.vp{flex:1;min-height:0;position:relative;overflow:hidden}
+.pn{flex:0 0 9mm;text-align:center;font-size:10pt;line-height:9mm}
+.mc{position:absolute;left:0;top:0;column-fill:auto}
+.h1{font-size:16pt;font-weight:700;line-height:1.5;margin:0 0 6pt;break-after:avoid}
+.h2{font-size:14pt;font-weight:700;line-height:1.5;margin:10pt 0 2pt;break-after:avoid}
+.au{font-size:14pt;margin:0 0 2pt}
+.u{font-size:11pt;overflow-wrap:anywhere;margin:0 0 10pt}
+.u a{color:#000}
+.t{font-size:11pt;white-space:pre-wrap;overflow-wrap:anywhere}
+.ctr{text-align:center}
+.tr{display:flex;align-items:baseline;gap:4px;margin:0 0 4pt;break-inside:avoid}
+.dl{flex:1;border-bottom:1px dotted #000;min-width:12px}
+.pgn{flex:0 0 2.6em;text-align:right}
+.pgs{flex:0 1 auto;text-align:right}
+.cv{position:absolute;inset:0;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;padding:6mm}
+.ct{font-size:26pt;font-weight:700;line-height:1.5}
+.cs{font-size:14pt;margin-top:14pt}
+@media print{body{background:none;padding:0}.pg{margin:0}}
+</style></head><body></body></html>`;
+
+function loadFrame(){return new Promise(res=>{const f=$('#bkf');f.onload=()=>res(f.contentDocument);f.srcdoc=BOOK_HTML+'<!--'+Date.now()+'-->'})}
+const setSt=t=>$('#bkst').textContent=t;
+
+async function makeBook(){
+  const err=$('#bkerr');err.textContent='';
+  const title=$('#bt').value.trim();
+  if(!title){err.textContent='පොතට නමක් ඇතුළත් කරන්න.';return}
+  const items=order.map(id=>store.get(id)).filter(Boolean);
+  if(!items.length){err.textContent='පොතට ලිපි තෝරන්න ("සුරැකි ලිපි" අතර 📖 පොතට ටික් කරන්න).';return}
+  const cfg={title,sub:$('#bs').value.trim(),toc:$('#btoc').checked,idx:$('#bidx').checked,notes:$('#bnotes').checked,
+    fronts:[...document.querySelectorAll('#bfront .fp')].map(d=>({h:d.querySelector('.fh').value.trim(),t:d.querySelector('.ftx').value.trim(),c:+d.querySelector('.fc').value})).filter(f=>f.t),
+    items:items.map(r=>({r,words:parseWords(idxw[r.id])}))};
+  $('#bk').hidden=false;document.body.style.overflow='hidden';
+  $('#bkprint').disabled=true;$('#bkwarn').hidden=true;setSt('සකසමින්…');
+  try{await buildBook(cfg)}catch(e){console.error(e);setSt('දෝෂයක්: '+e.message)}
+}
+$('#mkbook').onclick=makeBook;
+$('#bkclose').onclick=()=>{$('#bk').hidden=true;$('#bkf').srcdoc='';document.body.style.overflow=''};
+$('#bkprint').onclick=()=>{const w=$('#bkf').contentWindow;w.focus();w.print()};
+
+async function buildBook(cfg){
+  const doc=await loadFrame();await doc.fonts.ready;
+  const body=doc.body,G=26,tick=()=>new Promise(r=>setTimeout(r,0));
+  const el=(tag,cls,txt)=>{const e=doc.createElement(tag);if(cls)e.className=cls;if(txt!=null)e.textContent=txt;return e};
+  const mkPage=()=>{const p=el('section','pg'),fr=el('div','fr'),vp=el('div','vp'),pn=el('div','pn');fr.append(vp,pn);p.append(fr);body.append(p);return{p,vp,pn}};
+
+  /* usable area inside the bordered frame */
+  const probe=mkPage(),pr=probe.vp.getBoundingClientRect();
+  const W=Math.floor(pr.width),H=Math.floor(pr.height);probe.p.remove();
+
+  const mcOf=(node,c)=>{const m=el('div','mc');m.style.cssText=`width:${W}px;height:${H}px;column-count:${c};column-gap:${G}px`;m.append(node);return m};
+
+  function findWords(root,words,step,c){
+    const base=root.getBoundingClientRect().left,out={},nodes=[];
+    const tw=doc.createTreeWalker(root.querySelector('.src')||root,4);let n;while((n=tw.nextNode()))nodes.push(n);
+    words.forEach(w=>{
+      const re=new RegExp(w.replace(/[.*+?^${}()|[\]\\]/g,'\\$&'),'gi'),set=new Set();
+      nodes.forEach(t=>{let m;re.lastIndex=0;
+        while((m=re.exec(t.data))){
+          if(!m[0].length){re.lastIndex++;continue}
+          const rg=doc.createRange();rg.setStart(t,m.index);rg.setEnd(t,m.index+m[0].length);
+          const r=rg.getClientRects()[0];if(r)set.add(Math.floor(Math.floor((r.left-base+1)/step)/c));
+        }});
+      out[w]=[...set].sort((a,b)=>a-b);
+    });
+    return out;
+  }
+  /* lay content out in c columns, count pages, locate index words */
+  function measure(node,c,words){
+    const pg=mkPage(),mc=mcOf(node,c);pg.vp.append(mc);
+    const colW=(W-(c-1)*G)/c,step=colW+G;
+    const cols=Math.max(c,Math.round((mc.scrollWidth+G)/step)),pages=Math.ceil(cols/c);
+    const hits=words&&words.length?findWords(mc,words,step,c):{};
+    pg.p.remove();return{pages,hits};
+  }
+
+  const hrefOf=u=>/^https?:/i.test(u)?u:'https://'+u;
+  function artNode(r){
+    const d=el('div');
+    d.append(el('div','h1',r.title||'(මාතෘකාවක් නැත)'));
+    if(r.author)d.append(el('div','au','ලේඛකයා: '+r.author));
+    if(r.url){const u=el('div','u','මූලාශ්‍රය: '),a=el('a',null,r.url);a.href=hrefOf(r.url);u.append(a);d.append(u)}
+    const src=el('div','src');d.append(src);
+    let buf=[];const flush=()=>{const t=buf.join('\n').replace(/^\s*\n|\s+$/g,'');if(t.trim())src.append(el('div','t',t));buf=[]};
+    String(r.content||'').split(/\r?\n/).forEach(line=>{
+      const m=line.match(/^##\s+(.+)/);
+      if(m){flush();src.append(el('div','h2',m[1].trim()))}else buf.push(line);
+    });flush();
+    if(cfg.notes&&r.notes){src.append(el('div','h2','සටහන්'));src.append(el('div','t',r.notes))}
+    return d;
+  }
+  function frontNode(f){
+    const d=el('div',f.c===1?'ctr':null);
+    if(f.c===1){const sp=el('div');sp.style.height=Math.round(H*0.22)+'px';d.append(sp)}
+    if(f.h)d.append(el('div','h1',f.h));
+    d.append(el('div','t',f.t));return d;
+  }
+  function tocNode(list){
+    const d=el('div');d.append(el('div','h1','පටුන'));
+    list.forEach(([t,p])=>{const r=el('div','tr');r.append(el('span',null,t),el('span','dl'),el('span','pgn',String(p)));d.append(r)});
+    return d;
+  }
+  function indexNode(map){
+    const d=el('div');d.append(el('div','h1','සුචිය'));
+    [...map.values()].sort((a,b)=>a.w.localeCompare(b.w,'si')).forEach(x=>{
+      const r=el('div','tr');r.append(el('span',null,x.w),el('span','dl'),el('span','pgs',[...x.p].sort((a,b)=>a-b).join(', ')));d.append(r)});
+    return d;
+  }
+
+  /* pass 1: measure */
+  setSt('පිටු මනිමින්…');await tick();
+  const fr=cfg.fronts.map(f=>{const node=frontNode(f);return{node,c:f.c,n:measure(node,f.c).pages}});
+  const arts=[];
+  for(const [i,it] of cfg.items.entries()){
+    setSt(`ලිපි සකසමින් (${i+1}/${cfg.items.length})…`);await tick();
+    const node=artNode(it.r),m=measure(node,2,it.words);
+    arts.push({it,node,pages:m.pages,hits:m.hits});
+  }
+  const frontN=fr.reduce((s,x)=>s+x.n,0);
+  let tocN=0;
+  const startsOf=()=>{let p=1+frontN+tocN+1;return arts.map(a=>{const s=p;p+=a.pages;return s})};
+  const ttl=a=>a.it.r.title||'(මාතෘකාවක් නැත)';
+  if(cfg.toc){
+    tocN=measure(tocNode(arts.map(a=>[ttl(a),'000'])),2).pages;
+    for(let i=0;i<3;i++){const st=startsOf(),nn=measure(tocNode(arts.map((a,k)=>[ttl(a),st[k]])),2).pages;if(nn===tocN)break;tocN=nn}
+  }
+  const starts=startsOf();
+
+  /* index */
+  const imap=new Map(),missing=[];
+  arts.forEach((a,k)=>a.it.words.forEach(w=>{
+    const pg=a.hits[w]||[];
+    if(!pg.length){missing.push(`“${w}” (${ttl(a)})`);return}
+    const key=w.toLowerCase();if(!imap.has(key))imap.set(key,{w,p:new Set()});
+    pg.forEach(x=>imap.get(key).p.add(starts[k]+x));
+  }));
+  const useIdx=cfg.idx&&imap.size>0;
+  const idxNode=useIdx?indexNode(imap):null,idxN=useIdx?measure(idxNode,2).pages:0;
+
+  /* pass 2: emit pages */
+  setSt('පිටු සකසමින්…');await tick();
+  body.innerHTML='';let pageNo=0;
+  const emit=(node,c,n)=>{for(let k=0;k<n;k++){
+    pageNo++;const pg=mkPage(),mc=mcOf(node.cloneNode(true),c);
+    mc.style.transform=`translateX(${-k*(W+G)}px)`;pg.vp.append(mc);pg.pn.textContent=pageNo;}};
+  {pageNo++;const pg=mkPage(),cv=el('div','cv');cv.append(el('div','ct',cfg.title));if(cfg.sub)cv.append(el('div','cs',cfg.sub));pg.vp.append(cv)}
+  fr.forEach(x=>emit(x.node,x.c,x.n));
+  if(cfg.toc)emit(tocNode(arts.map((a,k)=>[ttl(a),starts[k]])),2,tocN);
+  arts.forEach(a=>emit(a.node,2,a.pages));
+  if(useIdx)emit(idxNode,2,idxN);
+
+  setSt(`පිටු ${pageNo} ක් • සූදානම්. "PDF ලෙස බාගන්න" ඔබා Destination: Save as PDF තෝරන්න.`);
+  if(missing.length||(cfg.idx&&!useIdx&&cfg.items.some(i=>i.words.length))){
+    const w=$('#bkwarn');w.textContent=missing.length?'ලිපිවල නොමැති Index වචන (මඟ හැරිණි): '+missing.join(', '):'';w.hidden=!missing.length;
+  }
+  $('#bkprint').disabled=false;
+}
+
 load();
 </script>
 </body>
