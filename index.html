@@ -52,10 +52,11 @@ label{display:block;margin:10px 0 3px;font-size:.88rem;color:var(--mute)}
 .row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 @media(max-width:560px){.row{grid-template-columns:1fr}header{padding-top:56px}h1{font-size:40px}#q{height:60px}}
 .box{background:var(--card);border:1px solid var(--line);border-radius:20px;padding:18px;margin-bottom:22px}
-.foot{display:flex;gap:8px;margin-top:14px}
+.foot{display:flex;gap:8px;margin-top:14px;flex-wrap:wrap}
 .bar{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:14px}
 .empty{text-align:center;color:var(--mute);padding:36px 0}
 .err{color:var(--danger);margin-top:10px;font-size:.92rem;white-space:pre-wrap}
+.ok{color:#7be0a4}
 select{width:100%;padding:9px 14px;border:1px solid var(--line);border-radius:999px;background:var(--bg);color:inherit;font:inherit}
 .fp,.sr{border:1px solid var(--line);border-radius:16px;padding:10px 14px;margin-top:10px}
 .srh{display:flex;justify-content:space-between;gap:8px;align-items:center}
@@ -108,8 +109,18 @@ select{width:100%;padding:9px 14px;border:1px solid var(--line);border-radius:99
       <form id="lf">
         <label>Email</label><input id="em" type="email" autocomplete="username" required>
         <label>මුරපදය</label><input id="pw" type="password" autocomplete="current-password" required>
-        <div class="foot"><button class="p" type="submit">ඇතුල් වන්න</button></div>
+        <div class="foot"><button class="p" type="submit">ඇතුල් වන්න</button><button type="button" id="fp">මුරපදය අමතකද?</button></div>
         <div class="err" id="lerr"></div>
+      </form>
+    </div>
+
+    <div id="rec" class="box" style="max-width:420px" hidden>
+      <h2>නව මුරපදයක් ඇතුළත් කරන්න</h2>
+      <form id="rf">
+        <label>නව මුරපදය (අකුරු 8කට වැඩි)</label><input id="np" type="password" autocomplete="new-password" minlength="8" required>
+        <label>නැවත ඇතුළත් කරන්න</label><input id="np2" type="password" autocomplete="new-password" minlength="8" required>
+        <div class="foot"><button class="p" type="submit">මුරපදය වෙනස් කරන්න</button></div>
+        <div class="err" id="rerr"></div>
       </form>
     </div>
 
@@ -173,7 +184,7 @@ const SB_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZ
 const sb=supabase.createClient(SB_URL,SB_KEY);
 const $=s=>document.querySelector(s);
 const esc=s=>(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-let user=null,rows=[],editId=null,timer;
+let user=null,rows=[],editId=null,timer,recovering=false;
 const FIELDS=['title','url','author','tags','content','notes'];
 function toast(m){const t=$('#toast');t.textContent=m;t.style.display='block';setTimeout(()=>t.style.display='none',2200)}
 
@@ -181,7 +192,7 @@ function toast(m){const t=$('#toast');t.textContent=m;t.style.display='block';se
 function showTab(n){
   $('#s-search').hidden=n!=='search';$('#s-admin').hidden=n!=='admin';
   $('#t-search').classList.toggle('on',n==='search');$('#t-admin').classList.toggle('on',n==='admin');
-  if(n==='search')load(); else if(user)load();
+  if(n==='search')load(); else if(user&&!recovering)load();
 }
 $('#t-search').onclick=()=>showTab('search');
 $('#t-admin').onclick=()=>showTab('admin');
@@ -292,15 +303,44 @@ $('#q').oninput=$('#aq').oninput=()=>{clearTimeout(timer);timer=setTimeout(load,
 
 /* Auth */
 function drawAdmin(){
-  $('#login').hidden=!!user;$('#panel').hidden=!user;
-  if(user){$('#who').textContent='ඇතුල් වී ඇත: '+user.email;if(isAdminTab())load()}
+  const showRec=recovering&&!!user;
+  $('#login').hidden=!!user;
+  $('#rec').hidden=!showRec;
+  $('#panel').hidden=!user||showRec;
+  if(user&&!showRec){$('#who').textContent='ඇතුල් වී ඇත: '+user.email;if(isAdminTab())load()}
 }
+// Password-reset link එකෙන් පැමිණියහොත් URL hash එකේ type=recovery ඇත
+if(/type=recovery/.test(location.hash+location.search)){recovering=true;showTab('admin')}
 sb.auth.getSession().then(({data})=>{user=data.session?.user||null;drawAdmin()});
-sb.auth.onAuthStateChange((_e,s)=>{user=s?.user||null;drawAdmin()});
+sb.auth.onAuthStateChange((ev,s)=>{
+  user=s?.user||null;
+  if(ev==='PASSWORD_RECOVERY'){recovering=true;showTab('admin')}
+  if(ev==='SIGNED_OUT')recovering=false;
+  drawAdmin();
+});
 $('#lf').onsubmit=async e=>{
-  e.preventDefault();$('#lerr').textContent='';
+  e.preventDefault();$('#lerr').textContent='';$('#lerr').classList.remove('ok');
   const {error}=await sb.auth.signInWithPassword({email:$('#em').value.trim(),password:$('#pw').value});
   if(error)$('#lerr').textContent='ඇතුල් විය නොහැක: '+error.message; else $('#pw').value='';
+};
+$('#fp').onclick=async()=>{
+  const le=$('#lerr');le.classList.remove('ok');le.textContent='';
+  const em=$('#em').value.trim();
+  if(!em){le.textContent='පළමුව Email ඇතුළත් කරන්න.';return}
+  const {error}=await sb.auth.resetPasswordForEmail(em,{redirectTo:location.origin+location.pathname});
+  if(error){le.textContent='යැවීමට නොහැකි විය: '+error.message;return}
+  le.classList.add('ok');le.textContent='මුරපදය වෙනස් කිරීමේ link එක ඔබේ email එකට යැවුවා.';
+};
+$('#rf').onsubmit=async e=>{
+  e.preventDefault();const re=$('#rerr');re.textContent='';
+  const a=$('#np').value,b=$('#np2').value;
+  if(a.length<8){re.textContent='මුරපදය අකුරු 8කට වැඩි විය යුතුයි.';return}
+  if(a!==b){re.textContent='මුරපද දෙක ගැළපෙන්නේ නැහැ.';return}
+  const {error}=await sb.auth.updateUser({password:a});
+  if(error){re.textContent='වෙනස් කිරීමට නොහැකි විය: '+error.message;return}
+  $('#np').value=$('#np2').value='';recovering=false;
+  history.replaceState(null,'',location.pathname);
+  toast('මුරපදය වෙනස් කළා');drawAdmin();
 };
 $('#out').onclick=()=>sb.auth.signOut();
 
